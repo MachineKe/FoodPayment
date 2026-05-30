@@ -18,9 +18,12 @@ export class MpesaService {
             this.configService.get<string>('SUPABASE_URL')!,
             this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY')!,
             {
-                global: {
-                    WebSocket,
+                auth: {
+                    persistSession: false,
                 },
+                realtime: {
+                    transport: WebSocket as any,
+                }
             }
         );
     }
