@@ -1,4 +1,3 @@
-mark@mark-Latitude-7389:~/Documents/Beyond Corporation/ElansquareConsulting/elanquare-api$ cat .gitignore
 logs
 *.log
 npm-debug.log*
