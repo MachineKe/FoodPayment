@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import * as WebSocket from 'ws';
 
 @Injectable()
 export class MpesaService {
@@ -16,6 +17,11 @@ export class MpesaService {
         this.supabase = createClient(
             this.configService.get<string>('SUPABASE_URL')!,
             this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY')!,
+            {
+                global: {
+                    WebSocket,
+                },
+            }
         );
     }
 
@@ -48,6 +54,14 @@ export class MpesaService {
         const passkey = this.configService.get<string>('MPESA_PASSKEY');
         const callbackUrl = this.configService.get<string>('MPESA_CALLBACK_URL');
 
+        // Format phone number to 254XXXXXXXXX
+        let formattedPhone = phoneNumber.replace(/\D/g, ''); // Remove non-numeric characters like '+'
+        if (formattedPhone.startsWith('0')) {
+            formattedPhone = `254${formattedPhone.slice(1)}`;
+        } else if (formattedPhone.length === 9) { // Handles inputs like 722000000
+            formattedPhone = `254${formattedPhone}`;
+        }
+
         // Format timestamp as YYYYMMDDHHmmss
         const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
         const password = Buffer.from(`${businessShortCode}${passkey}${timestamp}`).toString('base64');
@@ -58,9 +72,9 @@ export class MpesaService {
             Timestamp: timestamp,
             TransactionType: 'CustomerPayBillOnline',
             Amount: Math.ceil(amount), // M-PESA requires integer amounts
-            PartyA: phoneNumber,
+            PartyA: formattedPhone,
             PartyB: businessShortCode,
-            PhoneNumber: phoneNumber,
+            PhoneNumber: formattedPhone,
             CallBackURL: callbackUrl,
             AccountReference: `Order-${orderId}`,
             TransactionDesc: `Payment for order ${orderId}`,
